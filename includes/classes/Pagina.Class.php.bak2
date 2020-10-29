@@ -1,0 +1,141 @@
+<?php
+    
+	/* Definição de Página */
+    class Pagina {
+        
+        private $dados = array();
+        public $template;
+		private $caminho;
+        private $pasta;
+        private $conteudo;
+        public $inicio;
+        public $erro;
+        private $ext;
+        private $arquivo;
+        private $regex = '/(http|www|.php|.asp|.net|.gif|.exe|.jpg|.html|.htm)/i';
+        
+        /* Método construtor: recebe a pasta das páginas e a extensão a usar. */
+        public function __construct($pasta = '',$ext = '.php') {
+            $this->pasta = $pasta;
+            $this->ext = $ext;
+        }
+        
+        /* Método para setar dados: Utilizamos um método inves do acesso direto para reduzir as dependencias. */
+        public function SetDados($campo,$valor) 
+		{
+            $this->dados[$campo] = $valor;
+        }
+        
+		/* Método de Definição do caminho absoluto da página */
+        protected function SetCaminhoPagina() 
+		{
+			/* Utilizamos um iterador recursivo de diretórios para percorrer todos os arquivos
+			   e subpastas da pasta de páginas a procura do arquivo de página desejado.
+			   Também setamos uma flag que indica se o arquivo foi ou não encontrado para controlar o loop.
+			 */
+			$iteradorDiretorios = new RecursiveDirectoryIterator($this->pasta);
+			$encontrado = false;
+			
+			foreach(new RecursiveIteratorIterator($iteradorDiretorios) as $arquivo)
+			{
+				/* Obtemos a informação do arquivo atual na recursão para sabermos se é o arquivo desejado. */
+				$path_parts = pathinfo($arquivo);
+				
+				/* Caso o nome base do arquivo (nome + extensão) for o mesmo do arquivo requisitado, setamos
+				   a flag para encontrado, definimos o caminho e paramos o loop.
+				 */
+				if ($path_parts["basename"] == $this->arquivo)
+				{
+					$encontrado = true;
+					$this->caminho = $arquivo;
+					break;
+				}
+			}
+			
+			/* Se no final o arquivo não foi encontrado, redefinimos a página como sendo a página de erro. */
+            if(!$encontrado)
+			{ 
+				$this->DefinirPagina($this->erro);
+                $this->caminho = $this->pasta . $this->arquivo;
+            }
+				
+        }
+        
+		/* Método de definição do arquivo da página */
+        public function DefinirPagina($url) 
+		{
+			/* O método recebe um nome de página. Se ele é vazio, definimos a inicial, se ele possui caracteres
+			 * proibidos definimos a inicial, se por fim ele passa nos testes, definimos a página. 
+			 */
+            if ( empty($url) ) {
+                $this->arquivo = $this->inicio . $this->ext;
+            }
+            elseif ( preg_match($this->regex,$url) ) {
+                $this->arquivo = $this->inicio . $this->ext;
+            }
+            else {
+                $this->arquivo = $url . $this->ext;
+            }
+        }
+		
+		public function SetDadosDeArrayPorURL($campo, $array)
+		{
+			if (!empty($this->arquivo))
+			{
+				$url = substr($this->arquivo, 0, strlen($this->arquivo)-strlen($this->ext));
+				
+				if (array_key_exists($url, $array))
+				{
+					$this->SetDados($campo, $array[$url]);	
+				}
+				else
+				{
+					$this->SetDados($campo, NULL);	
+				}
+			}
+		}
+        
+		/* Método para realizar as substituições de campos por valores */
+        protected function RealizarSubstituicoes() 
+		{
+			/* Percorremos todos os dados como pares (campo, valor) e fazemos a troca dentro de conteudo. */
+            foreach ( $this->dados as $campo => $valor  ) {
+                $troca    = '['.$campo.']';
+                $this->conteudo = str_replace($troca,$valor,$this->conteudo);
+            }
+        }
+        
+		/* Método para carregar a página */
+        public function Carregar() 
+		{
+			$this->SetCaminhoPagina();
+			
+            /*if ( strstr($this->arquivo,'/') ) 
+			{
+                explode("/",$this->arquivo);
+            }
+            else 
+			{
+				
+            }*/
+			
+			if ($this->ext == ".php")
+			{
+				ob_start();
+				include($this->caminho);
+				$pagina = ob_get_contents();
+				ob_end_clean();	
+			}
+			else
+			{
+				$pagina = file_get_contents($this->caminho);
+			}
+				
+			$this->conteudo = str_replace($this->template->campo,$pagina,$this->template->Carregar());
+			$this->RealizarSubstituicoes();
+			return $this->conteudo;
+        }
+        
+    }
+
+?>

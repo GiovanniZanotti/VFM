@@ -1,0 +1,123 @@
+<?php
+    
+    // Definição da classe de templates
+    
+    class Pagina {
+    
+        // Definição de propriedades
+        
+        private $dados = array();
+        private $caminhot; // Caminho do template (falta de criatividade)
+        private $caminhop; // Caminho da pagina (falta de criatividade outra vez)
+        private $template;
+        private $pastat; // Pasta do template (mais falta de criatividade)
+        private $pastap; // Pasta da pagina
+        public $conteudo;
+        public $inicio;
+        public $erro;
+        public $ext;
+        private $campo;
+        private $url;
+        private $request;
+        private $regex = '/(http|www|.php|.asp|.net|.gif|.exe|.jpg|.html|.htm)/i';
+        
+        // Definição do metodo construtor
+        
+        public function __construct($pastap = '', $pastat = '',$template = '',$ext = '.php') {
+            $this->request = substr($_SERVER['REQUEST_URI'],strlen(dirname($_SERVER['SCRIPT_NAME'])));
+            $this->SetGets();
+            $this->pastat = $pastat;
+            $this->pastap = $pastap;
+            $this->template = $template;
+            $this->ext = $ext;
+        }
+        
+        // Definição dos demais metodos
+        
+        public function SetDados($campo,$valor) {
+            $this->dados[$campo] = $valor;
+        }
+        
+        public function SetCaminhoPagina() {
+            $this->caminhop = $this->pastap . $this->url;
+            if ( !file_exists($this->caminhop) ) {
+                $this->SetUrl($this->erro);
+                $this->caminhop = $this->pastap . $this->url;
+            }
+        }
+		
+        public function SetCampo($campo) {
+            $this->campo = '['.$campo.']';
+        }
+        
+        public function SetUrl($url) {
+            if ( empty($url) ) {
+                $this->url = $this->inicio . $this->ext;
+            }
+            elseif ( preg_match($this->regex,$url) ) {
+                $this->url = $this->inicio . $this->ext;
+            }
+            else {
+                $this->url = $url . $this->ext;
+            }
+        }
+        
+        protected function SetGets() {
+			if ( strstr("/",substr($this->request,0,1)) ) {
+				$this->request = substr($this->request,1);
+			}
+            $_GET = explode("/",$this->request);
+        }
+        
+        public function SetTitulo($campo) {
+            global  $titulos;
+            $url = substr($this->url,0,strlen($this->url)-strlen($this->ext));
+            $this->SetDados($campo,$titulos[$url]);
+        }
+        
+        public function SetMetas($campo) {
+            global  $meta_tags;
+            $url = substr($this->url,0,strlen($this->url)-strlen($this->ext));
+            $this->SetDados($campo,$meta_tags[$url]);
+        }
+        
+        public function CarregarTemplate() {
+            $this->caminhot = $this->pastat . $this->template;
+			
+            if ( file_exists( $this->caminhot ) ) 
+			{
+            	$conteudo = file_get_contents( $this->caminhot );
+            }
+            else 
+			{
+				throw new Exception('Erro ao carregar o arquivo: O arquivo ' . $this->caminhot . ' não existe');
+        	}
+			
+            $this->conteudo = $conteudo;
+        }
+        
+        public function Substituicoes() {
+            $conteudo = $this->conteudo;
+            foreach ( $this->dados as $campo => $valor  ) {
+                $troca    = '['.$campo.']';
+                $conteudo = str_replace($troca,$valor,$conteudo);
+            }
+            return $conteudo;
+        }
+        
+        public function CarregarPagina() {
+            if ( strstr($this->url,'/') ) 
+			{
+                explode("/",$this->url());
+            }
+            else {
+                $pagina   = file_get_contents($this->caminhop);
+                $this->conteudo = str_replace($this->campo,$pagina,$this->conteudo);
+                $this->conteudo = $this->Substituicoes();
+                echo $this->conteudo;
+            }
+        }
+        
+    }
+
+?>

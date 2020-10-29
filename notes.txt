@@ -1,0 +1,22 @@
+<link rel="stylesheet" type="text/css" href="[template]/css/style.css" />
+<link rel="stylesheet" href="fancybox/jquery.fancybox.min.css" />
+<link rel="stylesheet" href="css/swiper.min.css">
+<link rel="stylesheet" type="text/css" href="css/animate.css" />
+
+
+<script type="text/javascript" src="fancybox/jquery.fancybox.min.js"></script>
+<script type="text/javascript" src="js/swiper.min.js"></script>
+
+
+
+
+////* Eventos do Google Analytics *////
+
+Obs: colocar dentro do código do ScrollReveal
+,
+ beforeReveal: function(domEl) {
+gtag('event', 'aaa', {
+'event_category' : 'bbb',
+'event_label' : 'ccc'
+});
+}
